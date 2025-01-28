@@ -1,0 +1,12 @@
+# Ignorowanie katalogu wirtualnego środowiska
+venv/
+
+# Ignorowanie plików cache Python
+__pycache__/
+*.pyc
+
+# Ignorowanie plików tymczasowych
+*.log
+*.tmp
+
+model/model_classification.h5
