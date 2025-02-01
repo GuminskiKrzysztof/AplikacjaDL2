@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wynik diagnozy</title>
+    <title>Diagnosis Result</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,10 +52,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>Wynik predykcji</h1>
-        <p><strong>Klasa:</strong> {{ result.class }}</p>
-        <p><strong>Pewność:</strong> {{ result.confidence }}%</p>
-        <a href="/">Wróć do strony głównej</a>
+        <h1>Prediction Result</h1>
+        <p><strong>Class:</strong> {{ result.class }}</p>
+        <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
+        <a href="/">Back to Home</a>
     </div>
 </body>
 </html>
