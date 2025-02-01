@@ -1,6 +1,9 @@
 # Ignorowanie katalogu wirtualnego środowiska
 venv/
 
+# Ignorowanie plików IDE
+.idea/
+
 # Ignorowanie plików cache Python
 __pycache__/
 *.pyc
