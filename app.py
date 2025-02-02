@@ -56,8 +56,31 @@ def index():
     return render_template("index.html")
 
 
+def calculate_dimensions(image_path, max_size=800):
+    """Calculate new dimensions maintaining aspect ratio"""
+    img = Image.open(image_path)
+    width, height = img.size
+    
+    # If image is already smaller than max_size, keep original dimensions
+    if width <= max_size and height <= max_size:
+        return width, height
+    
+    # Calculate new dimensions maintaining aspect ratio
+    if width > height:
+        new_width = max_size
+        new_height = int((height / width) * max_size)
+    else:
+        new_height = max_size
+        new_width = int((width / height) * max_size)
+    
+    return new_width, new_height
+
 def predict(filepath):
-    img = Image.open(filepath).resize((224, 224))
+    # Get optimal dimensions
+    width, height = calculate_dimensions(filepath)
+    
+    # Load and resize image while maintaining aspect ratio
+    img = Image.open(filepath).resize((224, 224))  # Keep 224x224 for model input
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
@@ -66,26 +89,57 @@ def predict(filepath):
     predicted_class = class_names[np.argmax(predictions)]
     confidence = np.max(predictions) * 100
 
-    explanation_path = generate_lime_explanation(filepath)
+    # Pass dimensions to LIME explanation
+    explanation_path = generate_lime_explanation(filepath, width, height)
 
     return {"class": predicted_class, "confidence": confidence}, explanation_path
 
 
-def generate_lime_explanation(image_path):
-    img = image.load_img(image_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
+def generate_lime_explanation(image_path, width, height):
+    # Load image for model prediction
+    img_for_model = image.load_img(image_path, target_size=(224, 224))
+    img_array = image.img_to_array(img_for_model)
     img_array = np.expand_dims(img_array, axis=0)
 
-    explainer = lime_image.LimeImageExplainer()
-    explanation = explainer.explain_instance(img_array[0], lambda x: model.predict(x), top_labels=5, hide_color=0,
-                                             num_samples=100)
+    # Load image for visualization with original proportions
+    img_for_viz = Image.open(image_path).resize((width, height))
+    img_viz_array = np.array(img_for_viz)
 
-    temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=False, num_features=5,
-                                                hide_rest=True)
-    result_img = mark_boundaries(temp, mask)
+    explainer = lime_image.LimeImageExplainer()
+    explanation = explainer.explain_instance(
+        img_array[0], 
+        lambda x: model.predict(x), 
+        top_labels=5, 
+        hide_color=0,
+        num_samples=100
+    )
+
+    temp, mask = explanation.get_image_and_mask(
+        explanation.top_labels[0], 
+        positive_only=False, 
+        num_features=5,
+        hide_rest=True
+    )
+
+    # Convert mask to proper format and resize
+    mask = mask.astype('uint8') * 255  # Convert to 8-bit unsigned integer
+    mask_resized = Image.fromarray(mask).resize((width, height), Image.Resampling.NEAREST)
+    mask_array = np.array(mask_resized) > 0  # Convert back to boolean mask
+
+    # Create the final visualization
+    result_img = mark_boundaries(
+        img_viz_array/255.0, 
+        mask_array,
+        color=(1, 0, 0),  # Red boundaries
+        outline_color=(1, 0, 0)  # Red outline
+    )
 
     explanation_filename = os.path.join(RESULTS_FOLDER, os.path.basename(image_path))
-    plt.imsave(explanation_filename, result_img.astype(np.uint8))
+    plt.figure(figsize=(10, 10))
+    plt.imshow(result_img)
+    plt.axis('off')
+    plt.savefig(explanation_filename, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
     return explanation_filename
 
