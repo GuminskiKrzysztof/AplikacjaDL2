@@ -87,7 +87,7 @@ def predict(filepath):
     predictions = model.predict(img_array)
     class_names = ['Covid', 'Normal', 'Viral Pneumonia']
     predicted_class = class_names[np.argmax(predictions)]
-    confidence = np.max(predictions) * 100
+    confidence = round(float(np.max(predictions) * 100), 4) 
 
     # Pass dimensions to LIME explanation
     explanation_path = generate_lime_explanation(filepath, width, height)
