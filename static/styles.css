@@ -72,3 +72,38 @@ button:hover, .back-link:hover {
 .back-link {
     margin-top: 20px;
 }
+
+.file-input-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.file-input-wrapper input[type="file"] {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+.file-input-wrapper label {
+    padding: 10px 20px;
+    background-color: #1d4ed8;
+    color: #ffffff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    display: inline-block;
+}
+
+.file-input-wrapper label:hover {
+    background-color: #2563eb;
+}
+
+.file-name {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}

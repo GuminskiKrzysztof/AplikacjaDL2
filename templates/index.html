@@ -10,9 +10,19 @@
     <div class="container">
         <h1 class="index-title">Upload Chest X-Ray Image</h1>
         <form action="/" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
+            <div class="file-input-wrapper">
+                <input type="file" id="file-input" name="file" accept="image/*" required lang="en">
+                <label for="file-input">Choose file</label>
+                <div class="file-name" id="file-name">No file chosen</div>
+            </div>
             <button type="submit">Upload</button>
         </form>
     </div>
+    <script>
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            var fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
 </body>
 </html>
