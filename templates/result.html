@@ -15,7 +15,7 @@
         <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
 
         <h2>Original Image</h2>
-        <img src="{{'uploads/' + image_url }}">
+        <img src="{{ url_for('uploaded_file', filename=image_url) }}">
 
         <h2>Explanation (LIME)</h2>
         <img src="{{ url_for('static', filename='results/' + image_url) }}">
