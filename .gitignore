@@ -1,11 +1,14 @@
-# Ignorowanie katalogu wirtualnego środowiska
+# Ignore virtual environment directory
 venv/
 
-# Ignorowanie plików cache Python
+# Ignore IDE files
+.idea/
+
+# Ignore Python cache files
 __pycache__/
 *.pyc
 
-# Ignorowanie plików tymczasowych
+# Ignore temporary files
 *.log
 *.tmp
 

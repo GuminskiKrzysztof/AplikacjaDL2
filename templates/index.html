@@ -1,69 +1,28 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnoza Klatki Piersiowej</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .container {
-            text-align: center;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-        }
-        h1 {
-            font-size: 24px;
-            color: #1d4ed8;
-            margin-bottom: 20px;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        input[type="file"] {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9fafb;
-            cursor: pointer;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #1d4ed8;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #2563eb;
-        }
-    </style>
+    <title>Chest X-Ray Diagnosis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Dodaj zdjęcie klatki piersiowej</h1>
+        <h1 class="index-title">Upload Chest X-Ray Image</h1>
         <form action="/" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
-            <button type="submit">Prześlij</button>
+            <div class="file-input-wrapper">
+                <input type="file" id="file-input" name="file" accept="image/*" required lang="en">
+                <label for="file-input">Choose file</label>
+                <div class="file-name" id="file-name">No file chosen</div>
+            </div>
+            <button type="submit">Upload</button>
         </form>
     </div>
+    <script>
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            var fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
 </body>
 </html>

@@ -4,72 +4,72 @@ import numpy as np
 import os
 from PIL import Image
 
-# Inicjalizacja aplikacji Flask
+# Initialize Flask application
 app = Flask(__name__)
 
-# Ścieżki do modelu i folderów
+# Paths to model and folders
 MODEL_PATH = "model/model_classification.h5"
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
-# Załaduj model
+# Load model
 model = tf.keras.models.load_model(MODEL_PATH)
 
-# Ustaw folder na przesłane pliki
+# Set upload folder
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-# Funkcja sprawdzająca, czy przesłany plik jest dozwolonym formatem
+# Function to check if file has allowed extension
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# Strona główna (formularz)
+# Main page (form)
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        # Sprawdź, czy plik został przesłany
+        # Check if file was uploaded
         if "file" not in request.files:
-            return "Nie przesłano pliku", 400
+            return "No file uploaded", 400
 
         file = request.files["file"]
         if file.filename == "":
-            return "Nie wybrano pliku", 400
+            return "No file selected", 400
 
         if file and allowed_file(file.filename):
-            # Zapisz plik na serwerze
+            # Save file on server
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(filepath)
 
-            # Przetwórz obraz i dokonaj predykcji
+            # Process image and make prediction
             result = predict(filepath)
 
-            # Przekaż wynik i ścieżkę obrazu do widoku
+            # Pass result and image path to view
             return render_template("result.html", result=result, image_url=file.filename)
 
     return render_template("index.html")
 
 
-# Funkcja do predykcji obrazu
+# Image prediction function
 def predict(filepath):
-    # Wczytaj obraz w odpowiednim rozmiarze (224x224)
+    # Load image in correct size (224x224)
     img = Image.open(filepath).resize((224, 224))
-    img_array = np.array(img) / 255.0  # Normalizacja
-    img_array = np.expand_dims(img_array, axis=0)  # Dodanie wymiaru batch
+    img_array = np.array(img) / 255.0  # Normalization
+    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-    # Dokonaj predykcji
+    # Make prediction
     predictions = model.predict(img_array)
-    class_names = ["Zdrowy", "Zapalenie płuc", "Normalna"]  # Dostosuj do swoich klas
+    class_names = ['Covid', 'Normal', 'Viral Pneumonia']
     predicted_class = class_names[np.argmax(predictions)]
-    confidence = np.max(predictions) * 100  # Pewność w procentach
+    confidence = np.max(predictions) * 100  # Confidence in percentage
 
     return {"class": predicted_class, "confidence": confidence}
 
 
 if __name__ == "__main__":
-    # Utwórz folder na przesłane pliki, jeśli nie istnieje
+    # Create upload folder if it doesn't exist
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    # Uruchom aplikację Flask
+    # Run Flask application
     app.run(debug=True)
