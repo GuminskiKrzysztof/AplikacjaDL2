@@ -80,7 +80,7 @@ def generate_lime_explanation(image_path):
     explanation = explainer.explain_instance(img_array[0], lambda x: model.predict(x), top_labels=5, hide_color=0,
                                              num_samples=100)
 
-    temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=False, num_features=5,
+    temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=True, num_features=5,
                                                 hide_rest=True)
     result_img = mark_boundaries(temp, mask)
 
