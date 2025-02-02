@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1 class="index-title">Upload Chest X-Ray Image</h1>
-        <form action="/" method="POST" enctype="multipart/form-data">
+        <form action="/" method="POST" enctype="multipart/form-data" id="upload-form">
             <div class="file-input-wrapper">
                 <input type="file" id="file-input" name="file" accept="image/*" required lang="en">
                 <label for="file-input">Choose file</label>
@@ -18,10 +18,20 @@
             <button type="submit">Upload</button>
         </form>
     </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loader"></div>
+        <p>Processing your image...</p>
+    </div>
+
     <script>
         document.getElementById('file-input').addEventListener('change', function(e) {
             var fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
             document.getElementById('file-name').textContent = fileName;
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', function() {
+            document.getElementById('loading-overlay').style.display = 'flex';
         });
     </script>
 </body>
