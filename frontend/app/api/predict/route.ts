@@ -1,13 +1,40 @@
-export async function predictImage(file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
+import { NextResponse } from 'next/server';
 
-  const res = await fetch("http://localhost:5000/predict", {
-    method: "POST",
-    body: formData,
-  });
+const FLASK_API_BASE_URL = process.env.FLASK_API_URL || "http://localhost:5000";
 
-  if (!res.ok) throw new Error("Prediction failed");
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
 
-  return res.json(); // { class: ..., confidence: ..., image_url: ... }
+    const file = formData.get('image'); 
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    const flaskFormData = new FormData();
+    
+    flaskFormData.append('file', file); 
+
+    const flaskResponse = await fetch(`${FLASK_API_BASE_URL}/predict`, {
+      method: 'POST',
+      body: flaskFormData,
+    });
+
+    if (!flaskResponse.ok) {
+      const flaskError = await flaskResponse.json().catch(() => ({ error: `Unknown error from Flask, status: ${flaskResponse.status}` }));
+      console.error("Error from Flask:", flaskError);
+      return NextResponse.json(
+        { error: flaskError.error || `Flask prediction failed with status: ${flaskResponse.status}` },
+        { status: flaskResponse.status }
+      );
+    }
+
+    const flaskData = await flaskResponse.json();
+    return NextResponse.json(flaskData);
+
+  } catch (error: any) {
+    console.error('API Route error:', error);
+    return NextResponse.json({ error: 'Internal server error from Next.js API Route' }, { status: 500 });
+  }
 }

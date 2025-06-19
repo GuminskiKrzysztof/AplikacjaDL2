@@ -9,12 +9,20 @@ import { Chatbot } from "@/components/chatbot"
 import { ArrowLeft, CheckCircle, AlertCircle, Info } from "lucide-react"
 import Image from "next/image"
 
-interface AnalysisResult {
-  prediction: string
-  confidence: number
-  originalImage: string
-  limeImage?: string
+const FLASK_API_BASE_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || "http://localhost:5000";
+
+interface PredictionResult { 
+  class: string;
+  confidence: number;
 }
+
+interface AnalysisResult {
+  prediction: PredictionResult; 
+  explanation_image_url: string;
+  original_image_url: string;
+  message?: string;
+}
+
 
 export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
@@ -23,10 +31,24 @@ export default function ResultsPage() {
   useEffect(() => {
     const storedResult = sessionStorage.getItem("analysisResult")
     if (storedResult) {
-      setResult(JSON.parse(storedResult))
+    const parsedResult = JSON.parse(storedResult);
+    
+    if (parsedResult.prediction && typeof parsedResult.prediction === 'object' && 
+        'class' in parsedResult.prediction && 'confidence' in parsedResult.prediction) {
+      setResult({
+        prediction: parsedResult.prediction, 
+        original_image_url: parsedResult.original_image_url || parsedResult.originalImage, 
+        explanation_image_url: parsedResult.explanation_image_url || parsedResult.limeImage, 
+        message: parsedResult.message,
+      });
     } else {
-      router.push("/")
+        // Jeśli struktura prediction jest niepoprawna, przekieruj lub pokaż błąd
+        console.error("Invalid prediction format received:", parsedResult);
+        router.push("/");
     }
+  } else {
+    router.push("/");
+  }
   }, [router])
 
   if (!result) {
@@ -40,32 +62,40 @@ export default function ResultsPage() {
     )
   }
 
-  const getResultColor = (prediction: string) => {
-    switch (prediction.toLowerCase()) {
-      case "normal":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "covid":
-        return "bg-red-100 text-red-800 border-red-200"
-      case "viral pneumonia":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      default:
-        return "bg-slate-100 text-slate-800 border-slate-200"
-    }
+const getResultColor = (predictionData: PredictionResult) => {
+  if (!predictionData || typeof predictionData.class !== 'string') {
+    return "bg-slate-100 text-slate-800 border-slate-200";
   }
-
-  const getResultIcon = (prediction: string) => {
-    switch (prediction.toLowerCase()) {
-      case "normal":
-        return <CheckCircle className="h-5 w-5" />
-      case "covid":
-        return <AlertCircle className="h-5 w-5" />
-      case "viral pneumonia":
-        return <AlertCircle className="h-5 w-5" />
-      default:
-        return <Info className="h-5 w-5" />
-    }
+  switch (predictionData.class.toLowerCase()) {
+    case "normal":
+      return "bg-green-100 text-green-800 border-green-200"
+    case "covid":
+      return "bg-red-100 text-red-800 border-red-200"
+    case "viral pneumonia": 
+      return "bg-orange-100 text-orange-800 border-orange-200"
+    case "pneumonia":
+      return "bg-red-100 text-red-800 border-red-200" 
+    default:
+      return "bg-slate-100 text-slate-800 border-slate-200"
   }
-
+}
+const getResultIcon = (predictionData: PredictionResult) => {
+  if (!predictionData || typeof predictionData.class !== 'string') {
+    return <Info className="h-5 w-5" />; 
+  }
+  switch (predictionData.class.toLowerCase()) {
+    case "normal":
+      return <CheckCircle className="h-5 w-5" />
+    case "covid":
+      return <AlertCircle className="h-5 w-5" />
+    case "viral pneumonia":
+      return <AlertCircle className="h-5 w-5" />
+    case "pneumonia":
+      return <AlertCircle className="h-5 w-5" />
+    default:
+      return <Info className="h-5 w-5" />
+  }
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -111,7 +141,7 @@ export default function ResultsPage() {
           <Card className="mb-8 border-slate-200 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {getResultIcon(result.prediction)}
+                {getResultIcon(result.prediction)} {}
                 Diagnostic Results
               </CardTitle>
             </CardHeader>
@@ -120,7 +150,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800 mb-3">Predicted Class</h3>
                   <Badge className={`text-lg px-4 py-2 ${getResultColor(result.prediction)} pointer-events-none`}>
-                    {result.prediction}
+                    {result.prediction.class} {}
                   </Badge>
                 </div>
                 <div>
@@ -129,10 +159,10 @@ export default function ResultsPage() {
                     <div className="flex-1 bg-slate-200 rounded-full h-3">
                       <div
                         className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${result.confidence}%` }}
+                        style={{ width: `${result.prediction.confidence}%` }}
                       ></div>
                     </div>
-                    <span className="text-xl font-bold text-slate-800">{result.confidence.toFixed(1)}%</span>
+                      <span className="text-xl font-bold text-slate-800">{result.prediction.confidence.toFixed(1)}%</span> {}
                   </div>
                 </div>
               </div>
@@ -149,7 +179,7 @@ export default function ResultsPage() {
               <CardContent>
                 <div className="aspect-square relative bg-slate-100 rounded-lg overflow-hidden">
                   <Image
-                    src={result.originalImage || "/placeholder.svg"}
+                    src={FLASK_API_BASE_URL + (result.original_image_url || "/placeholder.svg")}
                     alt="Original chest X-ray"
                     fill
                     className="object-contain"
@@ -165,13 +195,13 @@ export default function ResultsPage() {
               </CardHeader>
               <CardContent>
                 <div className="aspect-square relative bg-slate-100 rounded-lg overflow-hidden">
-                  {result.limeImage ? (
-                    <Image
-                      src={result.limeImage || "/placeholder.svg"}
-                      alt="LIME explanation visualization"
-                      fill
-                      className="object-contain"
-                    />
+                  {result.explanation_image_url ? ( 
+                  <Image
+                    src={FLASK_API_BASE_URL + (result.explanation_image_url || "/placeholder.svg")}
+                    alt="LIME explanation visualization"
+                    fill
+                    className="object-contain"
+                  />
                   ) : (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">

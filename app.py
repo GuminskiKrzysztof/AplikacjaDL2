@@ -35,7 +35,7 @@ model = tf.keras.models.load_model(MODEL_PATH)
 
 # Ustaw folder na przesłane pliki
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['EXPLANATIONS_FOLDER '] = EXPLANATIONS_FOLDER 
+app.config['EXPLANATIONS_FOLDER'] = EXPLANATIONS_FOLDER 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(EXPLANATIONS_FOLDER , exist_ok=True)
 

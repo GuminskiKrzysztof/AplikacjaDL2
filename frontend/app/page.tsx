@@ -38,8 +38,10 @@ export default function HomePage() {
         sessionStorage.setItem(
           "analysisResult",
           JSON.stringify({
-            ...result,
-            originalImage: URL.createObjectURL(selectedFile),
+            prediction: result.prediction, 
+            original_image_url: result.original_image_url,
+            explanation_image_url: result.explanation_image_url,
+            message: result.message,
           }),
         )
         router.push("/results")
