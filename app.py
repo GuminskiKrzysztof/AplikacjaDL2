@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask_cors import CORS
 import tensorflow as tf
 import numpy as np
 import os
@@ -9,10 +10,9 @@ from skimage.segmentation import mark_boundaries
 from tensorflow.keras.preprocessing import image
 import google.generativeai as genai
 import os
-from flask import Flask, request, jsonify, render_template
+import dotenv
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyBq3oa3TLpQELWLz7huWJh_6Zf6ijLEb7U"
-
+dotenv.load_dotenv() 
 # Konfiguracja klienta Gemini
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
@@ -21,11 +21,13 @@ medical_model = genai.GenerativeModel('gemini-2.0-flash')
 
 # Inicjalizacja aplikacji Flask
 app = Flask(__name__)
+CORS(app)
+
 
 # Ścieżki do modelu i folderów
 MODEL_PATH = "model/model_classification.h5"
 UPLOAD_FOLDER = "uploads"
-RESULTS_FOLDER = "static/results"
+EXPLANATIONS_FOLDER  = "static/explanations"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 # Załaduj model
@@ -33,39 +35,78 @@ model = tf.keras.models.load_model(MODEL_PATH)
 
 # Ustaw folder na przesłane pliki
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['EXPLANATIONS_FOLDER '] = EXPLANATIONS_FOLDER 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULTS_FOLDER, exist_ok=True)
+os.makedirs(EXPLANATIONS_FOLDER , exist_ok=True)
 
 # Add route for serving uploaded files
 @app.route('/uploads/<filename>')
-def uploaded_file(filename):
+def serve_uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/explanations/<filename>')
+def serve_explanation_image(filename):
+    return send_from_directory(app.config['EXPLANATIONS_FOLDER'], filename)
 
 # Funkcja sprawdzająca, czy przesłany plik jest dozwolonym formatem
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        if "file" not in request.files:
-            return "No file uploaded", 400
+@app.route("/predict", methods=["POST"])
+def predict_endpoint():
+    if "file" not in request.files:
+        return jsonify({"error": "Brak pliku w żądaniu"}), 400
 
-        file = request.files["file"]
-        if file.filename == "":
-            return "No file selected", 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "Nie wybrano pliku"}), 400
 
-        if file and allowed_file(file.filename):
-            # Zapisz plik na serwerze
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(filepath)
+    if file and allowed_file(file.filename):
+        # Zapisz plik na serwerze
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
 
-            result, explanation_path = predict(filepath)
-            return render_template("result.html", result=result, image_url=file.filename,
-                                   explanation_url=explanation_path)
+        try:
+            # Wywołaj funkcję predict (niezmieniona logika)
+            prediction_data, explanation_filepath = predict_image_and_generate_explanation(filepath)
 
-    return render_template("index.html")
+            # Zwróć dane w formacie JSON
+            return jsonify({
+                "message": "Plik przetworzony pomyślnie",
+                "original_image_url": f"/uploads/{file.filename}", # URL do oryginalnego obrazu
+                "explanation_image_url": f"/explanations/{os.path.basename(explanation_filepath)}",
+                "prediction": prediction_data
+            })
+        except Exception as e:
+            # Lepsze logowanie błędów
+            print(f"Błąd podczas przetwarzania pliku: {e}")
+            return jsonify({"error": f"Wystąpił błąd podczas przetwarzania pliku: {str(e)}"}), 500
+    
+    return jsonify({"error": "Nieprawidłowy format pliku"}), 400 
+
+def predict_image_and_generate_explanation(filepath):
+    width, height = calculate_dimensions(filepath)
+
+    # Load and resize image for model input
+    img = Image.open(filepath).resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    # Dokonaj predykcji
+    predictions = model.predict(img_array)
+    # Upewnij się, że class_names odpowiadają kolejności klas z Twojego modelu
+    class_names = ['Covid', 'Normal', 'Viral Pneumonia']
+    
+    predicted_class_index = np.argmax(predictions)
+    predicted_class = class_names[predicted_class_index]
+    confidence = round(float(np.max(predictions) * 100), 4)
+
+    # Pass dimensions to LIME explanation
+    explanation_path = generate_lime_explanation(filepath, width, height)
+
+    return {"class": predicted_class, "confidence": confidence}, explanation_path
+
 
 
 def calculate_dimensions(image_path, max_size=800):
@@ -87,26 +128,6 @@ def calculate_dimensions(image_path, max_size=800):
 
     return new_width, new_height
 
-def predict(filepath):
-    # Get optimal dimensions
-    width, height = calculate_dimensions(filepath)
-
-    # Load and resize image while maintaining aspect ratio
-    img = Image.open(filepath).resize((224, 224))  # Keep 224x224 for model input
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-
-    # Dokonaj predykcji
-    predictions = model.predict(img_array)
-    class_names = ["Health", "Viral pneumia", "Covid"]
-    class_names = ['Covid', 'Normal', 'Viral Pneumonia']
-    predicted_class = class_names[np.argmax(predictions)]
-    confidence = round(float(np.max(predictions) * 100), 4)
-
-    # Pass dimensions to LIME explanation
-    explanation_path = generate_lime_explanation(filepath, width, height)
-
-    return {"class": predicted_class, "confidence": confidence}, explanation_path
 
 
 def generate_lime_explanation(image_path, width, height):
@@ -127,9 +148,11 @@ def generate_lime_explanation(image_path, width, height):
         hide_color=0,
         num_samples=100
     )
+    predictions = model.predict(img_array)
+    predicted_class_index = np.argmax(predictions[0]) # Get the index of the highest prediction
 
     temp, mask = explanation.get_image_and_mask(
-        explanation.top_labels[0],
+        predicted_class_index,
         positive_only=False,
         num_features=5,
         hide_rest=True
@@ -148,7 +171,7 @@ def generate_lime_explanation(image_path, width, height):
         outline_color=(1, 0, 0)  # Red outline
     )
 
-    explanation_filename = os.path.join(RESULTS_FOLDER, os.path.basename(image_path))
+    explanation_filename = os.path.join(EXPLANATIONS_FOLDER, os.path.basename(image_path))
     plt.figure(figsize=(10, 10))
     plt.imshow(result_img)
     plt.axis('off')
@@ -205,5 +228,6 @@ def chatbot():
 
 if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    os.makedirs(RESULTS_FOLDER, exist_ok=True)
-    app.run(debug=True)
+    os.makedirs(EXPLANATIONS_FOLDER, exist_ok=True)
+
+    app.run(debug=True, port=5000)
