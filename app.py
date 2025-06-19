@@ -167,8 +167,29 @@ def chatbot():
 
         text = data["text"]
 
+        # Zabezpieczenie: unikanie udzielania diagnoz
+        risky_phrases = [
+            "czy jestem chory", "czy mam covid", "czy to zapalenie płuc",
+            "czy jestem zdrowy", "czy to groźne", "czy muszę do lekarza",
+            "czy to poważne", "czy mam się martwić", "czy muszę iść do szpitala"
+        ]
+
+        if any(phrase in text.lower() for phrase in risky_phrases):
+            return jsonify({
+                "response_text": "Nie jestem w stanie postawić diagnozy. Proszę skonsultuj się z lekarzem."
+            })
+
         # Stworzenie prompta
-        prompt = f"Jesteś specjalistą medycznym a dokładniej w sprawach klatki piersiowej. Odpowiedz na poniższe pytanie:\n\n\"{text}\" \nZwróć tylko odpowiedź."
+        prompt = f"""
+        Jesteś doświadczonym specjalistą w zakresie radiologii i analizy zdjęć RTG klatki piersiowej.
+        Odpowiadasz w prosty, zwięzły sposób na pytania użytkowników aplikacji diagnostycznej.
+        Nie udzielaj diagnoz - jedynie dostarczaj informacji ogólnych, edukacyjnych i wspierających korzystanie z systemu AI.
+
+        
+        Odpowiedz na pytanie:\n\n\"{text}\" \n
+        Zwróć tylko odpowiedź.
+        
+        """
 
         # Wygenerowanie odpowiedzi z modelu
         response = medical_model.generate_content(prompt)
