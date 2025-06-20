@@ -18,6 +18,12 @@ export function FileUpload({ onFileSelect, selectedFile }: FileUploadProps) {
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0]
       if (file) {
+        // Validate file type
+        const allowedTypes = ["image/png", "image/jpeg"]
+        if (!allowedTypes.includes(file.type)) {
+          alert("Please upload only PNG, JPG, or JPEG files.")
+          return
+        }
         onFileSelect(file)
         const previewUrl = URL.createObjectURL(file)
         setPreview(previewUrl)
@@ -29,7 +35,8 @@ export function FileUpload({ onFileSelect, selectedFile }: FileUploadProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".bmp", ".tiff"],
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
     },
     multiple: false,
   })
@@ -98,7 +105,7 @@ export function FileUpload({ onFileSelect, selectedFile }: FileUploadProps) {
           </Button>
         </div>
 
-        <div className="text-xs text-slate-500">Supported formats: PNG, JPG, JPEG, BMP, TIFF (Max 10MB)</div>
+        <div className="text-xs text-slate-500">Supported formats: PNG, JPG, JPEG (Max 10MB)</div>
       </div>
     </div>
   )
