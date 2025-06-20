@@ -42,7 +42,6 @@ export default function ResultsPage() {
         message: parsedResult.message,
       });
     } else {
-        // Jeśli struktura prediction jest niepoprawna, przekieruj lub pokaż błąd
         console.error("Invalid prediction format received:", parsedResult);
         router.push("/");
     }
@@ -162,7 +161,7 @@ const getResultIcon = (predictionData: PredictionResult) => {
                         style={{ width: `${result.prediction.confidence}%` }}
                       ></div>
                     </div>
-                      <span className="text-xl font-bold text-slate-800">{result.prediction.confidence.toFixed(1)}%</span> {}
+                      <span className="text-xl font-bold text-slate-800">{result.prediction.confidence.toFixed(3)}%</span> {}
                   </div>
                 </div>
               </div>

@@ -54,20 +54,25 @@ export function Chatbot() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputValue }),
+        body: JSON.stringify({ text: userMessage.text }),
       })
 
       if (response.ok) {
         const data = await response.json()
+        const botResponseText = data.response_text;
+        if (!botResponseText) {
+            throw new Error("Invalid response format from server.");
+        }
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: data.response,
+          text: botResponseText,
           isUser: false,
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, botMessage])
       } else {
-        throw new Error("Failed to get response")
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get response from server");
       }
     } catch (error) {
       const errorMessage: Message = {

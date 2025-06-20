@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt 
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 import tensorflow as tf
@@ -7,7 +11,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from lime import lime_image
 from skimage.segmentation import mark_boundaries
-from tensorflow.keras.preprocessing import image
+from tensorflow.keras.preprocessing import image # type: ignore
 import google.generativeai as genai
 import os
 import dotenv
