@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,8 +28,14 @@ export function Chatbot() {
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   const sendMessage = async () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -98,7 +104,7 @@ export function Chatbot() {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col">
+        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-blue-600 text-white rounded-t-lg">
             <CardTitle className="text-lg font-semibold">Medical Assistant</CardTitle>
             <Button
@@ -111,9 +117,9 @@ export function Chatbot() {
             </Button>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0">
+          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
               {messages.map((message) => (
                 <div key={message.id} className={`flex gap-3 ${message.isUser ? "justify-end" : "justify-start"}`}>
                   {!message.isUser && (
@@ -122,7 +128,7 @@ export function Chatbot() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                    className={`max-w-[80%] p-3 rounded-lg text-sm break-words ${
                       message.isUser ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-800"
                     }`}
                   >
@@ -155,6 +161,7 @@ export function Chatbot() {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
