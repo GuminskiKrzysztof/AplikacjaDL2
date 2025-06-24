@@ -13,3 +13,5 @@ __pycache__/
 *.tmp
 
 model/model_classification.h5
+
+.env
